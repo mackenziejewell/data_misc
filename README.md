@@ -1,5 +1,5 @@
-# plot_simply
-Functions for quicker use of common plotting tools, especially involving geographic plots
+# data_misc
+Handling miscellaneous data sets
 
 ### To build matching environment:
 
