@@ -26,7 +26,9 @@ def open_local_leadfile(year,
                         crop_j = [600, 1200], 
                         main_dir = '/Volumes/Seagate_Jewell/KenzieStuff/ArcLeads/'):
     
-    """Function to output vector components for plotting in cartopy. 
+    """Read in local lead file from Willmes et al. (2023) dataset.
+        Dates are adjusted since they are off by one year in second portion of timeseries. 
+        Default is to crop spatially, which signifcantly saves time
 
 INPUT: 
 - year: (int) year2 of file to open (files are stored Nov. year1 -- Apr. year2)
@@ -35,8 +37,7 @@ INPUT:
 - main_dir: (str) directory where data files are stored
 
 OUTPUT:
-- u_fixed: (N x M) array of u with correct angle and magnitude for plotting
-- v_fixed: (N x M) array of v with correct angle and magnitude for plotting
+- ds2: (xarray Dataset) dataset with cropped data and correct dates
 
 Latest recorded update:
 01-31-2025
@@ -59,10 +60,6 @@ Latest recorded update:
     dates2 = [datetime(int(time[:4])+1, int(time[4:6]), int(time[6:])) for time in ds.time.values[61:].astype(str)]
     correct_dates = np.append(dates1, dates2)
 
-    ds['time_wrong'] = ds.time
-    ds = ds.assign_coords({'time': correct_dates})
-
-
     # crop
     ai, bi = crop_i[0], crop_i[1]
     aj, bj = crop_j[0], crop_j[1]
@@ -71,37 +68,24 @@ Latest recorded update:
     lats = ds.lat[ai:bi, aj:bj]
     lons = ds.lon[ai:bi, aj:bj]
     
-    # lea map
+    # lead map
     lead_map = ds.leadmap[:, ai:bi, aj:bj]
-    
-    data = {}
-    data['lon'] = lons
-    data['lat'] = lats
-    data['lead_map'] = lead_map
-    data['time'] = correct_dates
-    data['ds'] = ds
 
-    lead_units = 'Categories: 0=clouds, 1=land, 2=sea ice, 3=artefacts, 4=leads, 5=open water'
-
-    variables = {'lon': (('nrow', 'ncol'), ds.lon.values, {'units': 'degreeE'}),
-                'lat': (('nrow', 'ncol'), ds.lat.values, {'units': 'degreeN'}),
-                # 'leadmap': (('time', 'nrow', 'ncol'), ds.leadmap.values, {'units': lead_units}),
+    # create new dataset (cropped and with correct dates)
+    variables = {'lon': (('nrow', 'ncol'), lons.values, {'units': 'degreeE'}),
+                'lat': (('nrow', 'ncol'), lats.values, {'units': 'degreeN'}),
+                'leadmap': (('time', 'nrow', 'ncol'), lead_map.values, 
+                            {'units': ds.leadmap.units, 'CRS': ds.leadmap.CRS}),
                 }
     
-
-    coordinates = {'nrow': np.arange(ds.dims['nrows']),
-                    'ncol': np.arange(ds.dims['ncols']),
+    coordinates = {'nrow': np.arange(ds.dims['nrows'])[ai:bi],
+                    'ncol': np.arange(ds.dims['ncols'])[aj:bj],
                     'time': correct_dates 
                     }
-    
 
     # Create the Dataset
-    # ds2 = xr.Dataset(data_vars = variables,
-    #                  coords = coordinates,
-    #                  )
-    # attrs={
-    #     'description': ' '
-    # }
-# )
+    ds2 = xr.Dataset(data_vars = variables,
+                     coords = coordinates,
+                     attrs=ds.attrs)
 
-    return data, variables, coordinates
+    return ds2
