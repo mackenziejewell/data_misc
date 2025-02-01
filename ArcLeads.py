@@ -21,7 +21,7 @@ from datetime import datetime, timedelta
 
 # FUNCTIONS:
 #---------------------------------------------------------------------
-def open_local_leadfile(year, 
+def open_local_file(year, 
                         crop_i = [1400, 2200], 
                         crop_j = [600, 1200], 
                         main_dir = '/Volumes/Seagate_Jewell/KenzieStuff/ArcLeads/'):
